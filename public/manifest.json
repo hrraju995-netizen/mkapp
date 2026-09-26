@@ -1,0 +1,24 @@
+{
+  "name": "TextShift AI — Precision Image Text Inpainter",
+  "short_name": "TextShift",
+  "description": "Precision image text inpainting engine. Detect, replace and download text while preserving 100% of original image.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0b0f19",
+  "theme_color": "#0b0f19",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
