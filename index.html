@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
   <meta name="description" content="TextShift - Instant Image Text Replacer. Simply select any text on your image to replace it with seamless original style.">
   <title>TextShift — Instant Image Text Replacer</title>
   <link rel="manifest" href="/manifest.json">
@@ -185,28 +185,32 @@
           <div class="comparison-slider-container" id="comparisonSliderContainer" style="display: none;"></div>
         </div>
       </div>
-
-      <!-- Floating Quick Zoom & Pan Widget on Canvas (Fixed at top-right of panel, never cut off) -->
-      <div class="floating-zoom-bar" id="floatingZoomBar" style="display: none;">
-        <div class="canvas-tool-toggle-group">
-          <button type="button" id="toolSelectBtn" class="tool-btn-sm tool-mode-toggle active" title="Select / Edit Text">✏️ Edit</button>
-          <button type="button" id="toolMoveBtn" class="tool-btn-sm tool-mode-toggle" title="Move / Drag Image">✋ Move</button>
-        </div>
-        <div class="zoom-divider"></div>
-        <button type="button" id="floatZoomOutBtn" class="tool-btn-sm" title="Zoom Out">−</button>
-        <span id="floatZoomVal" class="tool-size-text" style="min-width: 32px; cursor: pointer;">Fit</span>
-        <button type="button" id="floatZoomInBtn" class="tool-btn-sm" title="Zoom In">+</button>
-        <button type="button" id="floatZoomFitBtn" class="tool-btn-sm" style="font-size:0.68rem; width: auto; padding: 0 4px;" title="Reset to Fit">Fit</button>
-      </div>
     </section>
   </main>
+
+  <!-- Floating Quick Zoom & Pan Widget (Fixed position, always visible on screen) -->
+  <div class="floating-zoom-bar" id="floatingZoomBar" style="display: none;">
+    <div class="canvas-tool-toggle-group">
+      <button type="button" id="toolSelectBtn" class="tool-btn-sm tool-mode-toggle active" title="Select / Edit Text">✏️ Edit</button>
+      <button type="button" id="toolMoveBtn" class="tool-btn-sm tool-mode-toggle" title="Move / Drag Image">✋ Move</button>
+    </div>
+    <div class="zoom-divider"></div>
+    <button type="button" id="floatZoomOutBtn" class="tool-btn-sm" title="Zoom Out">−</button>
+    <span id="floatZoomVal" class="tool-size-text" style="min-width: 32px; cursor: pointer;">Fit</span>
+    <button type="button" id="floatZoomInBtn" class="tool-btn-sm" title="Zoom In">+</button>
+    <button type="button" id="floatZoomFitBtn" class="tool-btn-sm" style="font-size:0.68rem; width: auto; padding: 0 4px;" title="Reset to Fit">Fit</button>
+  </div>
 
   <!-- Clean Floating Text Replacement Bar (Appears when text is selected) -->
   <div class="direct-edit-floating-bar" id="directEditFloatingBar" style="display: none;">
     <div class="edit-bar-content">
       <div class="edit-bar-header">
         <span class="edit-bar-title">Replace Selected Text</span>
-        <button type="button" class="btn-close-bar" id="directCancelBtn" title="Cancel selection">&times;</button>
+        <div class="edit-bar-header-actions">
+          <button type="button" id="editBarPanToggleBtn" class="edit-bar-mode-btn" title="Toggle Move / Edit">✋ Move</button>
+          <button type="button" id="toggleStyleOptionsBtn" class="edit-bar-toggle-style-btn" title="Show font size and style options">⚙️ Style ▾</button>
+          <button type="button" class="btn-close-bar" id="directCancelBtn" title="Cancel selection">&times;</button>
+        </div>
       </div>
 
       <div class="edit-bar-main-row">
@@ -233,7 +237,7 @@
         </div>
       </div>
 
-      <div class="edit-bar-size-row" id="editBarSizeRow">
+      <div class="edit-bar-size-row" id="editBarSizeRow" style="display: none;">
         <div class="edit-bar-size-section">
           <div class="edit-bar-size-label">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg>

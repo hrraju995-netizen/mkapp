@@ -59,6 +59,9 @@ const directReplaceInput = document.getElementById('directReplaceInput');
 const directApplyBtn = document.getElementById('directApplyBtn');
 const directCancelBtn = document.getElementById('directCancelBtn');
 const directCancelBtn2 = document.getElementById('directCancelBtn2');
+const editBarPanToggleBtn = document.getElementById('editBarPanToggleBtn');
+const toggleStyleOptionsBtn = document.getElementById('toggleStyleOptionsBtn');
+const editBarSizeRow = document.getElementById('editBarSizeRow');
 
 // Auto-Detected Style Info Badges
 const autoFontSizeBadge = document.getElementById('autoFontSizeBadge');
@@ -360,7 +363,18 @@ function clearSelection() {
   if (directEditFloatingBar) {
     directEditFloatingBar.style.display = 'none';
   }
+  if (editBarSizeRow) {
+    editBarSizeRow.style.display = 'none';
+  }
+  if (toggleStyleOptionsBtn) {
+    toggleStyleOptionsBtn.classList.remove('active');
+    toggleStyleOptionsBtn.textContent = '⚙️ Style ▾';
+  }
   clearLivePreview();
+  if (state.originalImage && floatingZoomBar) {
+    floatingZoomBar.style.display = 'flex';
+  }
+  window.scrollTo(0, 0);
 }
 
 /**
@@ -370,9 +384,48 @@ function setCanvasTool(tool) {
   state.currentTool = tool;
   if (toolSelectBtn) toolSelectBtn.classList.toggle('active', tool === 'select');
   if (toolMoveBtn) toolMoveBtn.classList.toggle('active', tool === 'pan');
+  if (editBarPanToggleBtn) {
+    editBarPanToggleBtn.classList.toggle('active', tool === 'pan');
+    editBarPanToggleBtn.textContent = tool === 'pan' ? '✏️ Edit Text' : '✋ Move';
+  }
   if (canvasStageWrapper) {
     canvasStageWrapper.style.cursor = tool === 'pan' ? 'grab' : 'crosshair';
   }
+}
+
+/**
+ * Auto-Center Selected Text within the Visible Area of the Phone Screen
+ * Guarantees that when typing, the text on the image remains completely visible
+ * and is not hidden behind the virtual keyboard or floating edit card.
+ */
+function centerSelectionInView(bbox) {
+  if (!bbox || !state.originalImage || !canvasViewport || !imageCanvas) return;
+
+  const imgW = imageCanvas.width;
+  const imgH = imageCanvas.height;
+  const scale = state.zoomLevel || 1.0;
+
+  // Center of bbox in original canvas coordinates
+  const textCenterX = bbox.x + (bbox.width / 2);
+  const textCenterY = bbox.y + (bbox.height / 2);
+
+  // Offset of text center from image center (in display pixels)
+  const deltaFromImageCenterX = (textCenterX - (imgW / 2)) * scale;
+  const deltaFromImageCenterY = (textCenterY - (imgH / 2)) * scale;
+
+  const viewW = canvasViewport.clientWidth;
+  const viewH = canvasViewport.clientHeight;
+
+  // On mobile, the bottom ~50%-60% is occupied by virtual keyboard + edit bar.
+  // We place the target Y position in the upper ~26%-30% of the viewport (or ~100px from top)
+  const isMobile = window.innerWidth <= 768;
+  const targetX = viewW / 2;
+  const targetY = isMobile ? Math.max(75, viewH * 0.26) : (viewH * 0.38);
+
+  state.panX = Math.round(targetX - (viewW / 2) - deltaFromImageCenterX);
+  state.panY = Math.round(targetY - (viewH / 2) - deltaFromImageCenterY);
+
+  updateCanvasTransform();
 }
 
 /**
@@ -531,6 +584,9 @@ function commitDirectReplacement() {
 
   // Clear selection and close bar
   clearSelection();
+  setCanvasTool('select');
+  if (floatingZoomBar) floatingZoomBar.style.display = 'flex';
+  window.scrollTo(0, 0);
   showToast('Text replaced! Style matched original image.', 'success');
 }
 
@@ -902,6 +958,7 @@ function initDragSelection() {
         directReplaceInput.placeholder = 'Reading text...';
       }
       if (directEditFloatingBar) directEditFloatingBar.style.display = 'block';
+      centerSelectionInView(bbox);
 
       // Pre-fill with OCR reading of the selected text
       recognizeCrop(imageCanvas, bbox).then(recognizedText => {
@@ -918,6 +975,7 @@ function initDragSelection() {
 
       setTimeout(() => {
         if (directReplaceInput) directReplaceInput.focus();
+        centerSelectionInView(bbox);
       }, 80);
     } else {
       clearSelection();
@@ -1104,7 +1162,29 @@ function initEvents() {
   if (directCancelBtn) directCancelBtn.addEventListener('click', clearSelection);
   if (directCancelBtn2) directCancelBtn2.addEventListener('click', clearSelection);
 
+  if (editBarPanToggleBtn) {
+    editBarPanToggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setCanvasTool(state.currentTool === 'pan' ? 'select' : 'pan');
+    });
+  }
+
+  if (toggleStyleOptionsBtn && editBarSizeRow) {
+    toggleStyleOptionsBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isHidden = !editBarSizeRow.style.display || editBarSizeRow.style.display === 'none';
+      editBarSizeRow.style.display = isHidden ? 'flex' : 'none';
+      toggleStyleOptionsBtn.classList.toggle('active', isHidden);
+      toggleStyleOptionsBtn.textContent = isHidden ? '⚙️ Style ▴' : '⚙️ Style ▾';
+    });
+  }
+
   if (directReplaceInput) {
+    directReplaceInput.addEventListener('focus', () => {
+      if (state.currentSelection) {
+        centerSelectionInView(state.currentSelection.bbox);
+      }
+    });
     directReplaceInput.addEventListener('input', (e) => {
       const newText = e.target.value;
       clearTimeout(state.livePreviewDebounce);
@@ -1334,6 +1414,15 @@ function initEvents() {
 
   // Initialize Drag Selection
   initDragSelection();
+
+  // Keep selected text centered in visible area when mobile virtual keyboard opens/closes
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', () => {
+      if (state.currentSelection && directEditFloatingBar && directEditFloatingBar.style.display !== 'none') {
+        centerSelectionInView(state.currentSelection.bbox);
+      }
+    });
+  }
 }
 
 function loadFile(file) {
