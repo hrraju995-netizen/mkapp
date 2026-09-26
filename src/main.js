@@ -21,6 +21,10 @@ const state = {
 // DOM Elements
 const imageFileInput = document.getElementById('imageFileInput');
 const uploadNewBtn = document.getElementById('uploadNewBtn');
+const installAppBtn = document.getElementById('installAppBtn');
+const iosInstallModal = document.getElementById('iosInstallModal');
+const closeIosInstallModalBtn = document.getElementById('closeIosInstallModalBtn');
+const gotItIosBtn = document.getElementById('gotItIosBtn');
 const undoBtn = document.getElementById('undoBtn');
 const resetImageBtn = document.getElementById('resetImageBtn');
 const downloadBtn = document.getElementById('downloadBtn');
@@ -760,8 +764,48 @@ function triggerFileDownload() {
  * Initialize All Events
  */
 function initEvents() {
-  uploadNewBtn.addEventListener('click', () => imageFileInput.click());
-  dropzoneContainer.addEventListener('click', () => imageFileInput.click());
+  uploadNewBtn.addEventListener('click', () => {
+    imageFileInput.value = '';
+    imageFileInput.click();
+  });
+  dropzoneContainer.addEventListener('click', () => {
+    imageFileInput.value = '';
+    imageFileInput.click();
+  });
+
+  // PWA Install Button & iOS Instructions
+  let deferredInstallPrompt = null;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+  });
+
+  if (installAppBtn) {
+    installAppBtn.addEventListener('click', async () => {
+      if (deferredInstallPrompt) {
+        deferredInstallPrompt.prompt();
+        const { outcome } = await deferredInstallPrompt.userChoice;
+        if (outcome === 'accepted') {
+          installAppBtn.style.display = 'none';
+        }
+        deferredInstallPrompt = null;
+      } else {
+        if (iosInstallModal) iosInstallModal.style.display = 'flex';
+      }
+    });
+  }
+
+  if (closeIosInstallModalBtn && iosInstallModal) {
+    closeIosInstallModalBtn.addEventListener('click', () => { iosInstallModal.style.display = 'none'; });
+  }
+  if (gotItIosBtn && iosInstallModal) {
+    gotItIosBtn.addEventListener('click', () => { iosInstallModal.style.display = 'none'; });
+  }
+  if (iosInstallModal) {
+    iosInstallModal.addEventListener('click', (e) => {
+      if (e.target === iosInstallModal) iosInstallModal.style.display = 'none';
+    });
+  }
 
   imageFileInput.addEventListener('change', (e) => {
     const file = e.target.files && e.target.files[0];
@@ -1068,3 +1112,10 @@ function escapeHtml(str) {
 }
 
 document.addEventListener('DOMContentLoaded', initEvents);
+
+// Register PWA Service Worker for App Installation
+if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}

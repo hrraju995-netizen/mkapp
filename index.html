@@ -38,6 +38,14 @@
       <!-- Hidden file input -->
       <input type="file" id="imageFileInput" accept="image/*" style="display: none;">
       
+      <button id="installAppBtn" class="btn btn-secondary" title="Install TextShift as an App">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+          <line x1="12" y1="18" x2="12.01" y2="18"></line>
+        </svg>
+        <span class="btn-text">Install App</span>
+      </button>
+
       <button id="uploadNewBtn" class="btn btn-primary" title="Upload a photo or screenshot">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -272,6 +280,29 @@
             <line x1="12" y1="15" x2="12" y2="3"></line>
           </svg>
           Save to Downloads
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- iOS Install Instructions Modal -->
+  <div class="download-modal-backdrop" id="iosInstallModal" style="display: none;">
+    <div class="download-modal-card" style="max-width: 380px;">
+      <div class="download-modal-header">
+        <h3 style="font-size:1.05rem; font-weight:700; color:#fff; display:flex; align-items:center; gap:0.5rem;">
+          📱 Install on iPhone / iPad
+        </h3>
+        <button id="closeIosInstallModalBtn" class="btn-close-modal" type="button" style="background:none; border:none; color:var(--text-muted); font-size:1.4rem; cursor:pointer;">&times;</button>
+      </div>
+      <div class="download-modal-body" style="text-align:left; color:#cbd5e1; font-size:0.88rem; line-height:1.6;">
+        <p style="margin-bottom:0.75rem; color:#fff; font-weight:600;">iPhone-এ অ্যাপ হিসেবে সেভ করার নিয়ম:</p>
+        <ol style="padding-left:1.25rem; display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1.25rem;">
+          <li>Safari ব্রাউজারের নিচে থাকা <strong>Share আইকন (📤)</strong>-এ ট্যাপ করুন।</li>
+          <li>স্ক্রোল করে <strong>Add to Home Screen ([+])</strong>-এ ট্যাপ করুন।</li>
+          <li>ওপরে ডানে <strong>Add</strong> চাপুন।</li>
+        </ol>
+        <button type="button" id="gotItIosBtn" class="btn btn-primary" style="width:100%; justify-content:center; padding:0.65rem;">
+          Got it!
         </button>
       </div>
     </div>
