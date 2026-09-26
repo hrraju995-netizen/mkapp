@@ -15,15 +15,10 @@ const REMOTE_DIR = process.env.FTP_REMOTE_DIR || 'public_html';
 async function deploy() {
   if (!FTP_HOST || !FTP_USER || !FTP_PASSWORD) {
     console.error('\n❌ Missing FTP configuration in .env file!');
-    console.log('\nPlease create or update .env with your Hostinger FTP credentials:');
-    console.log('--------------------------------------------------');
-    console.log('FTP_HOST=ftp.yourdomain.com (or your Hostinger IP)');
-    console.log('FTP_USER=your_ftp_username');
-    console.log('FTP_PASSWORD=your_ftp_password');
-    console.log('FTP_REMOTE_DIR=public_html');
-    console.log('--------------------------------------------------\n');
     process.exit(1);
   }
+
+  const cleanHost = FTP_HOST.replace(/^ftp:\/\//i, '').replace(/\/$/, '').trim();
 
   console.log('🔨 Step 1: Building production bundle...');
   try {
@@ -39,25 +34,57 @@ async function deploy() {
     process.exit(1);
   }
 
-  console.log(`\n🚀 Step 2: Connecting to Hostinger FTP (${FTP_HOST})...`);
+  console.log(`\n🚀 Step 2: Connecting to Hostinger FTP (${cleanHost})...`);
   const client = new ftp.Client();
   client.ftp.verbose = true;
+  client.ftp.timeout = 30000;
 
   try {
-    await client.access({
-      host: FTP_HOST,
-      user: FTP_USER,
-      password: FTP_PASSWORD,
-      port: FTP_PORT,
-      secure: false // Hostinger standard FTP (or set to 'explicit' for FTPS)
-    });
+    try {
+      await client.access({
+        host: cleanHost,
+        user: FTP_USER.trim(),
+        password: FTP_PASSWORD.trim(),
+        port: FTP_PORT,
+        secure: false
+      });
+    } catch (accessErr) {
+      console.log('Retrying with explicit TLS...');
+      await client.access({
+        host: cleanHost,
+        user: FTP_USER.trim(),
+        password: FTP_PASSWORD.trim(),
+        port: FTP_PORT,
+        secure: 'explicit',
+        secureOptions: { rejectUnauthorized: false }
+      });
+    }
 
-    console.log(`\n📂 Step 3: Uploading dist files directly to ${REMOTE_DIR}...`);
-    await client.ensureDir(REMOTE_DIR);
-    await client.clearWorkingDir();
+    console.log('\n📂 Step 3: Determining target upload folder...');
+    // Ensure we are in /public_html
+    try {
+      await client.cd('/public_html');
+      console.log('Navigated to /public_html');
+    } catch {
+      await client.cd('public_html');
+      console.log('Navigated to public_html');
+    }
+
+    console.log('\n📤 Step 4: Uploading fresh dist files to public_html...');
     await client.uploadFromDir(localDistDir);
 
-    console.log('\n🎉 SUCCESS! Your app has been deployed live to Hostinger!');
+    // Also upload to /hbuilds/current/public_html if Hostinger Git build system is active
+    try {
+      console.log('Syncing to /hbuilds/current/public_html...');
+      await client.cd('/hbuilds/current/public_html');
+      await client.uploadFromDir(localDistDir);
+      console.log('Synced to /hbuilds/current/public_html successfully.');
+    } catch (e) {
+      // Normal if not using hbuilds
+    }
+
+    console.log('\n🎉 SUCCESS! TextShift has been deployed live to Hostinger!');
+    console.log('🌐 Visit your site to verify the latest updates!');
   } catch (err) {
     console.error('\n❌ Deployment failed:', err.message);
   } finally {
