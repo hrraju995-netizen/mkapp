@@ -190,12 +190,21 @@ function setZoom(modeOrScale) {
   if (modeOrScale === 'fit') {
     state.zoomMode = 'fit';
     state.zoomLevel = fit.scale;
-    imageCanvas.style.maxWidth = '100%';
-    imageCanvas.style.maxHeight = '75vh';
-    imageCanvas.style.width = '';
-    imageCanvas.style.height = '';
-    canvasStageWrapper.style.width = '';
-    canvasStageWrapper.style.height = '';
+    if (canvasStageWrapper) {
+      canvasStageWrapper.classList.remove('is-zoomed');
+      canvasStageWrapper.style.maxWidth = '100%';
+      canvasStageWrapper.style.maxHeight = '100%';
+      canvasStageWrapper.style.width = '';
+      canvasStageWrapper.style.height = '';
+      canvasStageWrapper.style.flexShrink = '0';
+    }
+    if (imageCanvas) {
+      imageCanvas.classList.remove('is-zoomed');
+      imageCanvas.style.maxWidth = '100%';
+      imageCanvas.style.maxHeight = '75vh';
+      imageCanvas.style.width = '';
+      imageCanvas.style.height = '';
+    }
     label = 'Fit';
   } else {
     state.zoomMode = 'custom';
@@ -205,12 +214,21 @@ function setZoom(modeOrScale) {
     targetW = Math.round(imgW * state.zoomLevel);
     targetH = Math.round(imgH * state.zoomLevel);
 
-    imageCanvas.style.maxWidth = 'none';
-    imageCanvas.style.maxHeight = 'none';
-    imageCanvas.style.width = `${targetW}px`;
-    imageCanvas.style.height = `${targetH}px`;
-    canvasStageWrapper.style.width = `${targetW}px`;
-    canvasStageWrapper.style.height = `${targetH}px`;
+    if (canvasStageWrapper) {
+      canvasStageWrapper.classList.add('is-zoomed');
+      canvasStageWrapper.style.maxWidth = 'none';
+      canvasStageWrapper.style.maxHeight = 'none';
+      canvasStageWrapper.style.width = `${targetW}px`;
+      canvasStageWrapper.style.height = `${targetH}px`;
+      canvasStageWrapper.style.flexShrink = '0';
+    }
+    if (imageCanvas) {
+      imageCanvas.classList.add('is-zoomed');
+      imageCanvas.style.maxWidth = 'none';
+      imageCanvas.style.maxHeight = 'none';
+      imageCanvas.style.width = `${targetW}px`;
+      imageCanvas.style.height = `${targetH}px`;
+    }
     label = `${Math.round(state.zoomLevel * 100)}%`;
   }
 
