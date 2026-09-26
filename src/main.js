@@ -16,11 +16,15 @@ const state = {
   livePreviewDebounce: null,
   zoomLevel: 1.0,
   zoomMode: 'fit',
-  currentTool: 'select' // 'select' | 'pan'
+  currentTool: 'select', // 'select' | 'pan'
+  panX: 0,
+  panY: 0
 };
 
 // DOM Elements
 const imageFileInput = document.getElementById('imageFileInput');
+const dropzoneFileInput = document.getElementById('dropzoneFileInput');
+const backToHomeBtn = document.getElementById('backToHomeBtn');
 const uploadNewBtn = document.getElementById('uploadNewBtn');
 const installAppBtn = document.getElementById('installAppBtn');
 const iosInstallModal = document.getElementById('iosInstallModal');
@@ -54,6 +58,7 @@ const directEditFloatingBar = document.getElementById('directEditFloatingBar');
 const directReplaceInput = document.getElementById('directReplaceInput');
 const directApplyBtn = document.getElementById('directApplyBtn');
 const directCancelBtn = document.getElementById('directCancelBtn');
+const directCancelBtn2 = document.getElementById('directCancelBtn2');
 
 // Auto-Detected Style Info Badges
 const autoFontSizeBadge = document.getElementById('autoFontSizeBadge');
@@ -112,6 +117,11 @@ function showToast(message, type = 'info') {
   }, 3200);
 }
 
+function updateCanvasTransform() {
+  if (!canvasStageWrapper) return;
+  canvasStageWrapper.style.transform = `translate(${Math.round(state.panX)}px, ${Math.round(state.panY)}px)`;
+}
+
 /**
  * Handle Loaded Image (Upload or Sample)
  */
@@ -119,6 +129,9 @@ function handleImageLoaded(img) {
   state.originalImage = img;
   state.modifiedRegions = [];
   state.currentSelection = null;
+  state.panX = 0;
+  state.panY = 0;
+  updateCanvasTransform();
   clearLivePreview();
   clearSelection();
 
@@ -137,7 +150,8 @@ function handleImageLoaded(img) {
   if (imageDimensionsLabel) imageDimensionsLabel.textContent = `${imageCanvas.width} × ${imageCanvas.height} px`;
   if (dropzoneContainer) dropzoneContainer.style.display = 'none';
   if (canvasToolbar) canvasToolbar.style.display = 'flex';
-  if (canvasStageWrapper) canvasStageWrapper.style.display = 'inline-block';
+  if (canvasStageWrapper) canvasStageWrapper.style.display = 'block';
+  if (backToHomeBtn) backToHomeBtn.style.display = 'inline-flex';
   if (resetImageBtn) resetImageBtn.style.display = 'inline-flex';
   if (undoBtn) undoBtn.style.display = 'none';
   if (downloadBtn) downloadBtn.disabled = false;
@@ -158,7 +172,33 @@ function handleImageLoaded(img) {
   setZoom('fit');
   setCanvasTool('select');
   if (floatingZoomBar) floatingZoomBar.style.display = 'flex';
-  showToast('Image loaded! Tap on any text to edit, or zoom in for precision.', 'info');
+  showToast('Image loaded! Tap on any text to edit, or switch to ✋ Move to pan.', 'info');
+}
+
+/**
+ * Back to Home / Pick New Image
+ */
+function goBackToHome() {
+  clearSelection();
+  clearLivePreview();
+  state.originalImage = null;
+  state.modifiedRegions = [];
+  state.panX = 0;
+  state.panY = 0;
+  updateCanvasTransform();
+
+  if (dropzoneContainer) dropzoneContainer.style.display = 'block';
+  if (canvasStageWrapper) canvasStageWrapper.style.display = 'none';
+  if (canvasToolbar) canvasToolbar.style.display = 'none';
+  if (floatingZoomBar) floatingZoomBar.style.display = 'none';
+  if (backToHomeBtn) backToHomeBtn.style.display = 'none';
+  if (resetImageBtn) resetImageBtn.style.display = 'none';
+  if (undoBtn) undoBtn.style.display = 'none';
+  if (downloadBtn) downloadBtn.disabled = true;
+  if (imageDimensionsLabel) imageDimensionsLabel.textContent = '0 × 0 px';
+  if (imageFileInput) imageFileInput.value = '';
+  if (dropzoneFileInput) dropzoneFileInput.value = '';
+  showToast('Back to upload screen.', 'info');
 }
 
 /**
@@ -190,20 +230,22 @@ function setZoom(modeOrScale) {
   if (modeOrScale === 'fit') {
     state.zoomMode = 'fit';
     state.zoomLevel = fit.scale;
-    if (canvasStageWrapper) {
-      canvasStageWrapper.classList.remove('is-zoomed');
-      canvasStageWrapper.style.maxWidth = '100%';
-      canvasStageWrapper.style.maxHeight = '100%';
-      canvasStageWrapper.style.width = '';
-      canvasStageWrapper.style.height = '';
-      canvasStageWrapper.style.flexShrink = '0';
-    }
+    state.panX = 0;
+    state.panY = 0;
+    updateCanvasTransform();
+
     if (imageCanvas) {
-      imageCanvas.classList.remove('is-zoomed');
       imageCanvas.style.maxWidth = '100%';
       imageCanvas.style.maxHeight = '75vh';
       imageCanvas.style.width = '';
       imageCanvas.style.height = '';
+    }
+    if (canvasStageWrapper) {
+      canvasStageWrapper.style.maxWidth = '100%';
+      canvasStageWrapper.style.maxHeight = '75vh';
+      canvasStageWrapper.style.width = '';
+      canvasStageWrapper.style.height = '';
+      canvasStageWrapper.style.flexShrink = '0';
     }
     label = 'Fit';
   } else {
@@ -214,21 +256,20 @@ function setZoom(modeOrScale) {
     targetW = Math.round(imgW * state.zoomLevel);
     targetH = Math.round(imgH * state.zoomLevel);
 
+    if (imageCanvas) {
+      imageCanvas.style.maxWidth = 'none';
+      imageCanvas.style.maxHeight = 'none';
+      imageCanvas.style.width = `${targetW}px`;
+      imageCanvas.style.height = `${targetH}px`;
+    }
     if (canvasStageWrapper) {
-      canvasStageWrapper.classList.add('is-zoomed');
       canvasStageWrapper.style.maxWidth = 'none';
       canvasStageWrapper.style.maxHeight = 'none';
       canvasStageWrapper.style.width = `${targetW}px`;
       canvasStageWrapper.style.height = `${targetH}px`;
       canvasStageWrapper.style.flexShrink = '0';
     }
-    if (imageCanvas) {
-      imageCanvas.classList.add('is-zoomed');
-      imageCanvas.style.maxWidth = 'none';
-      imageCanvas.style.maxHeight = 'none';
-      imageCanvas.style.width = `${targetW}px`;
-      imageCanvas.style.height = `${targetH}px`;
-    }
+    updateCanvasTransform();
     label = `${Math.round(state.zoomLevel * 100)}%`;
   }
 
@@ -553,8 +594,8 @@ function initDragSelection() {
 
   let panStartX = 0;
   let panStartY = 0;
-  let initialScrollLeft = 0;
-  let initialScrollTop = 0;
+  let initialPanX = 0;
+  let initialPanY = 0;
 
   let lastTwoFingerMidX = 0;
   let lastTwoFingerMidY = 0;
@@ -609,8 +650,8 @@ function initDragSelection() {
       isPanning = true;
       panStartX = clientX;
       panStartY = clientY;
-      initialScrollLeft = canvasViewport ? canvasViewport.scrollLeft : 0;
-      initialScrollTop = canvasViewport ? canvasViewport.scrollTop : 0;
+      initialPanX = state.panX;
+      initialPanY = state.panY;
       if (canvasStageWrapper) canvasStageWrapper.style.cursor = 'grabbing';
       if (e.cancelable) e.preventDefault();
       return;
@@ -644,10 +685,9 @@ function initDragSelection() {
       if (isTwoFingerActive) {
         const deltaMidX = midX - lastTwoFingerMidX;
         const deltaMidY = midY - lastTwoFingerMidY;
-        if (canvasViewport) {
-          canvasViewport.scrollLeft -= deltaMidX;
-          canvasViewport.scrollTop -= deltaMidY;
-        }
+        state.panX += deltaMidX;
+        state.panY += deltaMidY;
+        updateCanvasTransform();
         lastTwoFingerMidX = midX;
         lastTwoFingerMidY = midY;
 
@@ -674,14 +714,13 @@ function initDragSelection() {
 
     const { clientX, clientY } = getCoords(e);
 
-    // 2. Active 1-finger / mouse panning
+    // 2. Active 1-finger / mouse panning in ALL directions (UP, DOWN, LEFT, RIGHT)
     if (isPanning) {
       const dx = clientX - panStartX;
       const dy = clientY - panStartY;
-      if (canvasViewport) {
-        canvasViewport.scrollLeft = initialScrollLeft - dx;
-        canvasViewport.scrollTop = initialScrollTop - dy;
-      }
+      state.panX = initialPanX + dx;
+      state.panY = initialPanY + dy;
+      updateCanvasTransform();
       if (e.cancelable) e.preventDefault();
       return;
     }
@@ -935,14 +974,29 @@ function triggerFileDownload() {
  * Initialize All Events
  */
 function initEvents() {
-  uploadNewBtn.addEventListener('click', () => {
-    imageFileInput.value = '';
-    imageFileInput.click();
-  });
-  dropzoneContainer.addEventListener('click', () => {
-    imageFileInput.value = '';
-    imageFileInput.click();
-  });
+  if (backToHomeBtn) {
+    backToHomeBtn.addEventListener('click', goBackToHome);
+  }
+
+  if (uploadNewBtn) {
+    uploadNewBtn.addEventListener('click', () => {
+      imageFileInput.value = '';
+      imageFileInput.click();
+    });
+  }
+
+  if (dropzoneContainer) {
+    dropzoneContainer.addEventListener('click', (e) => {
+      if (e.target.closest('.sample-chips') || e.target.closest('.sample-chip')) return;
+      if (dropzoneFileInput) {
+        dropzoneFileInput.value = '';
+        dropzoneFileInput.click();
+      } else {
+        imageFileInput.value = '';
+        imageFileInput.click();
+      }
+    });
+  }
 
   // PWA Install Button & iOS Instructions
   let deferredInstallPrompt = null;
@@ -978,10 +1032,19 @@ function initEvents() {
     });
   }
 
-  imageFileInput.addEventListener('change', (e) => {
-    const file = e.target.files && e.target.files[0];
-    if (file) loadFile(file);
-  });
+  if (imageFileInput) {
+    imageFileInput.addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (file) loadFile(file);
+    });
+  }
+
+  if (dropzoneFileInput) {
+    dropzoneFileInput.addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (file) loadFile(file);
+    });
+  }
 
   window.addEventListener('dragover', (e) => e.preventDefault());
   dropzoneContainer.addEventListener('dragover', (e) => {
@@ -1039,6 +1102,7 @@ function initEvents() {
   // Direct Floating Bar Actions
   if (directApplyBtn) directApplyBtn.addEventListener('click', commitDirectReplacement);
   if (directCancelBtn) directCancelBtn.addEventListener('click', clearSelection);
+  if (directCancelBtn2) directCancelBtn2.addEventListener('click', clearSelection);
 
   if (directReplaceInput) {
     directReplaceInput.addEventListener('input', (e) => {

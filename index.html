@@ -46,6 +46,11 @@
         <span class="btn-text">Install App</span>
       </button>
 
+      <button id="backToHomeBtn" class="btn btn-secondary" style="display: none;" title="Go back to Home / Upload new image">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 12H5"></path><polyline points="12 19 5 12 12 5"></polyline></svg>
+        <span class="btn-text">Back</span>
+      </button>
+
       <button id="uploadNewBtn" class="btn btn-primary" title="Upload a photo or screenshot">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -134,20 +139,9 @@
 
       <!-- Viewport area -->
       <div class="canvas-viewport" id="canvasViewport">
-        <!-- Floating Quick Zoom & Pan Widget on Canvas -->
-        <div class="floating-zoom-bar" id="floatingZoomBar" style="display: none;">
-          <div class="canvas-tool-toggle-group">
-            <button type="button" id="toolSelectBtn" class="tool-btn-sm tool-mode-toggle active" title="Select / Edit Text">✏️ Edit</button>
-            <button type="button" id="toolMoveBtn" class="tool-btn-sm tool-mode-toggle" title="Move / Drag Image">✋ Move</button>
-          </div>
-          <div class="zoom-divider"></div>
-          <button type="button" id="floatZoomOutBtn" class="tool-btn-sm" title="Zoom Out">-</button>
-          <span id="floatZoomVal" class="tool-size-text" style="min-width: 32px; cursor: pointer;">Fit</span>
-          <button type="button" id="floatZoomInBtn" class="tool-btn-sm" title="Zoom In">+</button>
-          <button type="button" id="floatZoomFitBtn" class="tool-btn-sm" style="font-size:0.68rem; width: auto; padding: 0 4px;" title="Reset to Fit">Fit</button>
-        </div>
         <!-- Drag & Drop Upload State -->
         <div class="dropzone-container" id="dropzoneContainer">
+          <input type="file" id="dropzoneFileInput" accept="image/*" class="dropzone-file-overlay" title="Tap to upload image">
           <div class="dropzone-icon">
             <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -191,6 +185,19 @@
           <div class="comparison-slider-container" id="comparisonSliderContainer" style="display: none;"></div>
         </div>
       </div>
+
+      <!-- Floating Quick Zoom & Pan Widget on Canvas (Fixed at top-right of panel, never cut off) -->
+      <div class="floating-zoom-bar" id="floatingZoomBar" style="display: none;">
+        <div class="canvas-tool-toggle-group">
+          <button type="button" id="toolSelectBtn" class="tool-btn-sm tool-mode-toggle active" title="Select / Edit Text">✏️ Edit</button>
+          <button type="button" id="toolMoveBtn" class="tool-btn-sm tool-mode-toggle" title="Move / Drag Image">✋ Move</button>
+        </div>
+        <div class="zoom-divider"></div>
+        <button type="button" id="floatZoomOutBtn" class="tool-btn-sm" title="Zoom Out">−</button>
+        <span id="floatZoomVal" class="tool-size-text" style="min-width: 32px; cursor: pointer;">Fit</span>
+        <button type="button" id="floatZoomInBtn" class="tool-btn-sm" title="Zoom In">+</button>
+        <button type="button" id="floatZoomFitBtn" class="tool-btn-sm" style="font-size:0.68rem; width: auto; padding: 0 4px;" title="Reset to Fit">Fit</button>
+      </div>
     </section>
   </main>
 
@@ -207,6 +214,9 @@
         <button type="button" id="directApplyBtn" class="btn btn-primary edit-bar-apply-btn">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
           Change Text
+        </button>
+        <button type="button" id="directCancelBtn2" class="btn btn-secondary edit-bar-back-btn" title="Cancel & Go Back">
+          Back
         </button>
       </div>
 
