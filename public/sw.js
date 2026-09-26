@@ -1,9 +1,8 @@
-// TextShift AI Service Worker
-const CACHE_NAME = 'textshift-pwa-v1';
+// TextShift AI Service Worker (Network-First for fresh updates, offline fallback)
+const CACHE_NAME = 'textshift-pwa-v2';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
-  '/style.css',
   '/manifest.json',
   '/icon-192.png',
   '/icon-512.png'
@@ -30,13 +29,23 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Let network handle dynamic API requests
-  if (event.request.url.includes('/api/')) {
-    return;
-  }
+  if (event.request.method !== 'GET') return;
+  if (event.request.url.includes('/api/')) return;
+
+  // Network-First: Fetch latest code from server, fallback to cache if offline
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      return cached || fetch(event.request).catch(() => cached);
-    })
+    fetch(event.request)
+      .then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
+        }
+        return networkResponse;
+      })
+      .catch(() => {
+        return caches.match(event.request);
+      })
   );
 });

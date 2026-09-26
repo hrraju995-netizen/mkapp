@@ -15,7 +15,8 @@ const state = {
   livePreviewPatch: null, // { patch: ImageData, x, y }
   livePreviewDebounce: null,
   zoomLevel: 1.0,
-  zoomMode: 'fit'
+  zoomMode: 'fit',
+  currentTool: 'select' // 'select' | 'pan'
 };
 
 // DOM Elements
@@ -31,6 +32,7 @@ const downloadBtn = document.getElementById('downloadBtn');
 
 const dropzoneContainer = document.getElementById('dropzoneContainer');
 const canvasToolbar = document.getElementById('canvasToolbar');
+const canvasViewport = document.getElementById('canvasViewport');
 const canvasStageWrapper = document.getElementById('canvasStageWrapper');
 const imageCanvas = document.getElementById('imageCanvas');
 const originalCanvas = document.getElementById('originalCanvas');
@@ -76,6 +78,8 @@ const zoomInBtn = document.getElementById('zoomInBtn');
 const zoomFitBtn = document.getElementById('zoomFitBtn');
 
 const floatingZoomBar = document.getElementById('floatingZoomBar');
+const toolSelectBtn = document.getElementById('toolSelectBtn');
+const toolMoveBtn = document.getElementById('toolMoveBtn');
 const floatZoomOutBtn = document.getElementById('floatZoomOutBtn');
 const floatZoomVal = document.getElementById('floatZoomVal');
 const floatZoomInBtn = document.getElementById('floatZoomInBtn');
@@ -152,6 +156,7 @@ function handleImageLoaded(img) {
 
   setMode('normal');
   setZoom('fit');
+  setCanvasTool('select');
   if (floatingZoomBar) floatingZoomBar.style.display = 'flex';
   showToast('Image loaded! Tap on any text to edit, or zoom in for precision.', 'info');
 }
@@ -292,11 +297,23 @@ function setMode(mode) {
  */
 function clearSelection() {
   state.currentSelection = null;
-  bboxLayer.innerHTML = '';
+  if (bboxLayer) bboxLayer.innerHTML = '';
   if (directEditFloatingBar) {
     directEditFloatingBar.style.display = 'none';
   }
   clearLivePreview();
+}
+
+/**
+ * Switch Canvas Tool: 'select' (Edit/Select text) | 'pan' (Move/Scroll image)
+ */
+function setCanvasTool(tool) {
+  state.currentTool = tool;
+  if (toolSelectBtn) toolSelectBtn.classList.toggle('active', tool === 'select');
+  if (toolMoveBtn) toolMoveBtn.classList.toggle('active', tool === 'pan');
+  if (canvasStageWrapper) {
+    canvasStageWrapper.style.cursor = tool === 'pan' ? 'grab' : 'crosshair';
+  }
 }
 
 /**
@@ -498,17 +515,34 @@ function resetToOriginalImage() {
 }
 
 /**
- * Setup Tap-to-Select & Drag-to-Select on Image Canvas (Mouse & Touch)
- * Ultra-Easy: 1-Tap on text snaps selection instantly! Dragging also supported.
+ * Setup Tap-to-Select, Drag-to-Select, and Smooth Pan/Scroll on Canvas (Mouse & Touch)
+ * Supports:
+ * - ✋ Move tool: 1-finger / mouse drag smoothly scrolls canvas viewport
+ * - ✏️ Edit tool: 1-tap snaps text instantly, drag draws selection rectangle
+ * - 2-Finger Gestures (Works everywhere): Pinch-to-zoom and 2-finger pan
  */
 function initDragSelection() {
   let isPointerDown = false;
+  let isPanning = false;
+  let isTwoFingerActive = false;
+  let justEndedTwoFinger = false;
+
   let startClientX = 0;
   let startClientY = 0;
   let startCanvasX = 0;
   let startCanvasY = 0;
-  let dragBox = null;
   let hasMoved = false;
+
+  let panStartX = 0;
+  let panStartY = 0;
+  let initialScrollLeft = 0;
+  let initialScrollTop = 0;
+
+  let lastTwoFingerMidX = 0;
+  let lastTwoFingerMidY = 0;
+  let lastTwoFingerDist = 0;
+
+  let dragBox = null;
 
   const getCoords = (e) => {
     if (e.touches && e.touches.length > 0) {
@@ -524,74 +558,175 @@ function initDragSelection() {
     if (state.activeMode !== 'normal') return;
     if (e.button !== undefined && e.button !== 0) return;
 
-    // Check if clicked inside direct floating bar
+    // Check if clicked inside direct floating bar or floating zoom bar
     if (directEditFloatingBar && directEditFloatingBar.contains(e.target)) return;
+    if (floatingZoomBar && floatingZoomBar.contains(e.target)) return;
 
-    const rect = imageCanvas.getBoundingClientRect();
-    const { clientX, clientY } = getCoords(e);
-
-    if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) {
+    // Handle 2-Finger Touch: Cancel selection and start 2-finger pan/pinch
+    if (e.touches && e.touches.length >= 2) {
+      isPointerDown = false;
+      isPanning = false;
+      if (dragBox) dragBox.style.display = 'none';
+      isTwoFingerActive = true;
+      const t0 = e.touches[0];
+      const t1 = e.touches[1];
+      lastTwoFingerMidX = (t0.clientX + t1.clientX) / 2;
+      lastTwoFingerMidY = (t0.clientY + t1.clientY) / 2;
+      lastTwoFingerDist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY);
+      if (e.cancelable) e.preventDefault();
       return;
     }
 
-    clearLivePreview();
+    if (justEndedTwoFinger) return;
 
+    const { clientX, clientY } = getCoords(e);
+    const rect = imageCanvas ? imageCanvas.getBoundingClientRect() : null;
+    const isInsideCanvas = rect && (
+      clientX >= rect.left && clientX <= rect.right &&
+      clientY >= rect.top && clientY <= rect.bottom
+    );
+
+    // MODE A: PAN TOOL (✋ Move) or touch on empty viewport space
+    if (state.currentTool === 'pan' || !isInsideCanvas) {
+      isPanning = true;
+      panStartX = clientX;
+      panStartY = clientY;
+      initialScrollLeft = canvasViewport ? canvasViewport.scrollLeft : 0;
+      initialScrollTop = canvasViewport ? canvasViewport.scrollTop : 0;
+      if (canvasStageWrapper) canvasStageWrapper.style.cursor = 'grabbing';
+      if (e.cancelable) e.preventDefault();
+      return;
+    }
+
+    // MODE B: SELECT TOOL (✏️ Edit) on canvas
+    clearLivePreview();
     isPointerDown = true;
     hasMoved = false;
     startClientX = clientX;
     startClientY = clientY;
-
     startCanvasX = clientX - rect.left;
     startCanvasY = clientY - rect.top;
-
-    if (!dragBox) {
-      dragBox = document.createElement('div');
-      dragBox.className = 'selection-active-box';
-    }
-    dragBox.style.left = `${startCanvasX}px`;
-    dragBox.style.top = `${startCanvasY}px`;
-    dragBox.style.width = '0px';
-    dragBox.style.height = '0px';
-    dragBox.style.display = 'block';
-    dragBox.style.background = 'rgba(56, 189, 248, 0.14)';
-    dragBox.style.borderColor = '#38bdf8';
-    if (bboxLayer) {
-      bboxLayer.innerHTML = '';
-      bboxLayer.appendChild(dragBox);
-    }
 
     if (e.cancelable) e.preventDefault();
   };
 
   const onMove = (e) => {
-    if (!isPointerDown || !dragBox) return;
+    // 1. Two-finger Pan & Pinch Zoom
+    if (e.touches && e.touches.length >= 2) {
+      if (isPointerDown) {
+        isPointerDown = false;
+        if (dragBox) dragBox.style.display = 'none';
+      }
+      const t0 = e.touches[0];
+      const t1 = e.touches[1];
+      const midX = (t0.clientX + t1.clientX) / 2;
+      const midY = (t0.clientY + t1.clientY) / 2;
+      const dist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY);
+
+      if (isTwoFingerActive) {
+        const deltaMidX = midX - lastTwoFingerMidX;
+        const deltaMidY = midY - lastTwoFingerMidY;
+        if (canvasViewport) {
+          canvasViewport.scrollLeft -= deltaMidX;
+          canvasViewport.scrollTop -= deltaMidY;
+        }
+        lastTwoFingerMidX = midX;
+        lastTwoFingerMidY = midY;
+
+        if (lastTwoFingerDist > 0) {
+          const pinchRatio = dist / lastTwoFingerDist;
+          if (pinchRatio > 1.15) {
+            zoomIn();
+            lastTwoFingerDist = dist;
+          } else if (pinchRatio < 0.85) {
+            zoomOut();
+            lastTwoFingerDist = dist;
+          }
+        }
+      } else {
+        isTwoFingerActive = true;
+        lastTwoFingerMidX = midX;
+        lastTwoFingerMidY = midY;
+        lastTwoFingerDist = dist;
+      }
+
+      if (e.cancelable) e.preventDefault();
+      return;
+    }
+
+    const { clientX, clientY } = getCoords(e);
+
+    // 2. Active 1-finger / mouse panning
+    if (isPanning) {
+      const dx = clientX - panStartX;
+      const dy = clientY - panStartY;
+      if (canvasViewport) {
+        canvasViewport.scrollLeft = initialScrollLeft - dx;
+        canvasViewport.scrollTop = initialScrollTop - dy;
+      }
+      if (e.cancelable) e.preventDefault();
+      return;
+    }
+
+    // 3. Active box drag selection in Edit mode
+    if (!isPointerDown || !imageCanvas) return;
 
     const rect = imageCanvas.getBoundingClientRect();
-    const { clientX, clientY } = getCoords(e);
     const curX = Math.max(0, Math.min(rect.width, clientX - rect.left));
     const curY = Math.max(0, Math.min(rect.height, clientY - rect.top));
 
     const dist = Math.hypot(clientX - startClientX, clientY - startClientY);
-    if (dist > 5) {
+    if (dist > 7) {
       hasMoved = true;
+      if (!dragBox) {
+        dragBox = document.createElement('div');
+        dragBox.className = 'selection-active-box';
+      }
+      if (bboxLayer && !bboxLayer.contains(dragBox)) {
+        bboxLayer.innerHTML = '';
+        bboxLayer.appendChild(dragBox);
+      }
+      dragBox.style.display = 'block';
+
+      const left = Math.min(startCanvasX, curX);
+      const top = Math.min(startCanvasY, curY);
+      const width = Math.abs(curX - startCanvasX);
+      const height = Math.abs(curY - startCanvasY);
+
+      dragBox.style.left = `${left}px`;
+      dragBox.style.top = `${top}px`;
+      dragBox.style.width = `${width}px`;
+      dragBox.style.height = `${height}px`;
+      dragBox.style.background = 'rgba(56, 189, 248, 0.14)';
+      dragBox.style.borderColor = '#38bdf8';
     }
-
-    const left = Math.min(startCanvasX, curX);
-    const top = Math.min(startCanvasY, curY);
-    const width = Math.abs(curX - startCanvasX);
-    const height = Math.abs(curY - startCanvasY);
-
-    dragBox.style.left = `${left}px`;
-    dragBox.style.top = `${top}px`;
-    dragBox.style.width = `${width}px`;
-    dragBox.style.height = `${height}px`;
 
     if (e.cancelable) e.preventDefault();
   };
 
   const onEnd = (e) => {
+    if (isTwoFingerActive) {
+      if (!e.touches || e.touches.length === 0) {
+        isTwoFingerActive = false;
+        justEndedTwoFinger = true;
+        setTimeout(() => { justEndedTwoFinger = false; }, 350);
+      }
+      return;
+    }
+
+    if (isPanning) {
+      isPanning = false;
+      if (canvasStageWrapper) {
+        canvasStageWrapper.style.cursor = state.currentTool === 'pan' ? 'grab' : 'crosshair';
+      }
+      return;
+    }
+
     if (!isPointerDown) return;
     isPointerDown = false;
+
+    if (justEndedTwoFinger) return;
+    if (!imageCanvas) return;
 
     const rect = imageCanvas.getBoundingClientRect();
     const { clientX, clientY } = getCoords(e);
@@ -640,20 +775,27 @@ function initDragSelection() {
     }
 
     if (bbox && bbox.width >= 6 && bbox.height >= 5) {
+      if (!dragBox) {
+        dragBox = document.createElement('div');
+        dragBox.className = 'selection-active-box';
+      }
+      if (bboxLayer && !bboxLayer.contains(dragBox)) {
+        bboxLayer.innerHTML = '';
+        bboxLayer.appendChild(dragBox);
+      }
       // Reposition dragBox to the exact snapped text coordinates
       const boxLeft = bbox.x0 / scaleX;
       const boxTop = bbox.y0 / scaleY;
       const boxW = bbox.width / scaleX;
       const boxH = bbox.height / scaleY;
 
-      if (dragBox) {
-        dragBox.style.left = `${boxLeft}px`;
-        dragBox.style.top = `${boxTop}px`;
-        dragBox.style.width = `${boxW}px`;
-        dragBox.style.height = `${boxH}px`;
-        dragBox.style.background = 'rgba(56, 189, 248, 0.12)';
-        dragBox.style.borderColor = '#38bdf8';
-      }
+      dragBox.style.left = `${boxLeft}px`;
+      dragBox.style.top = `${boxTop}px`;
+      dragBox.style.width = `${boxW}px`;
+      dragBox.style.height = `${boxH}px`;
+      dragBox.style.display = 'block';
+      dragBox.style.background = 'rgba(56, 189, 248, 0.12)';
+      dragBox.style.borderColor = '#38bdf8';
 
       // Sample styling
       const sampledBg = sampleSurroundingBackground(ctx, bbox, 3);
@@ -722,17 +864,28 @@ function initDragSelection() {
       }, 80);
     } else {
       clearSelection();
-      showToast('Tap directly on any text or drag a box over it.', 'info');
+      if (hasMoved) {
+        showToast('No text detected in selected box. Tap directly on text or switch to ✋ Move to pan.', 'info');
+      } else {
+        showToast('Tap directly on any text or switch to ✋ Move to pan image.', 'info');
+      }
     }
   };
 
-  canvasStageWrapper.addEventListener('mousedown', onStart);
+  if (canvasViewport) {
+    canvasViewport.addEventListener('mousedown', onStart);
+    canvasViewport.addEventListener('touchstart', onStart, { passive: false });
+  } else {
+    canvasStageWrapper.addEventListener('mousedown', onStart);
+    canvasStageWrapper.addEventListener('touchstart', onStart, { passive: false });
+  }
+
   window.addEventListener('mousemove', onMove);
   window.addEventListener('mouseup', onEnd);
 
-  canvasStageWrapper.addEventListener('touchstart', onStart, { passive: false });
   window.addEventListener('touchmove', onMove, { passive: false });
   window.addEventListener('touchend', onEnd);
+  window.addEventListener('touchcancel', onEnd);
 }
 
 /**
@@ -1010,6 +1163,20 @@ function initEvents() {
     else setZoom('fit');
   });
 
+  // Canvas Tool Toggle: Edit (Select text) vs Move (Scroll/pan image)
+  if (toolSelectBtn) {
+    toolSelectBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setCanvasTool('select');
+    });
+  }
+  if (toolMoveBtn) {
+    toolMoveBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setCanvasTool('pan');
+    });
+  }
+
   // Ctrl + Wheel / Trackpad pinch to zoom on canvas viewport
   if (canvasViewport) {
     canvasViewport.addEventListener('wheel', (e) => {
@@ -1114,8 +1281,14 @@ function escapeHtml(str) {
 document.addEventListener('DOMContentLoaded', initEvents);
 
 // Register PWA Service Worker for App Installation
-if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
-  });
+if ('serviceWorker' in navigator) {
+  if (import.meta.env.DEV) {
+    navigator.serviceWorker.getRegistrations().then(regs => {
+      regs.forEach(reg => reg.unregister());
+    });
+  } else {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    });
+  }
 }

@@ -286,11 +286,14 @@ body {
 .canvas-viewport {
   flex: 1;
   position: relative;
-  display: grid;
-  place-items: center;
   overflow: auto;
-  padding: 1.5rem;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  align-items: safe center;
+  justify-content: safe center;
+  padding: 1rem;
   user-select: none;
+  touch-action: pan-x pan-y pinch-zoom;
   background-image: 
     radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
   background-size: 24px 24px;
@@ -390,6 +393,7 @@ body {
 /* Canvas Stage */
 .canvas-stage-wrapper {
   position: relative;
+  margin: auto;
   display: inline-block;
   box-shadow: var(--shadow-lg);
   border-radius: var(--radius-sm);
@@ -1979,6 +1983,202 @@ body {
   border-radius: var(--radius-sm);
   padding: 2px 4px;
   gap: 3px;
+}
+
+.edit-bar-secondary-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-left: auto;
+}
+
+.canvas-tool-toggle-group {
+  display: flex;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius-full);
+  padding: 2px;
+  gap: 2px;
+}
+
+.tool-mode-toggle {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  line-height: 1.2;
+  white-space: nowrap;
+  width: auto;
+  height: auto;
+}
+
+.tool-mode-toggle:hover {
+  color: #fff;
+}
+
+.tool-mode-toggle.active {
+  background: #38bdf8;
+  color: #0b0f19;
+  box-shadow: 0 1px 4px rgba(56, 189, 248, 0.4);
+}
+
+.zoom-divider {
+  width: 1px;
+  height: 14px;
+  background: rgba(255, 255, 255, 0.18);
+  margin: 0 2px;
+}
+
+/* ========================================================
+   Mobile & Small Screen Responsive Design
+   ======================================================== */
+@media (max-width: 640px) {
+  .app-header {
+    padding: 0.45rem 0.65rem;
+  }
+
+  .brand-title {
+    font-size: 0.95rem;
+  }
+
+  .brand-badge {
+    display: none;
+  }
+
+  .header-actions {
+    gap: 0.35rem;
+  }
+
+  .header-actions .btn {
+    padding: 0.35rem 0.65rem;
+    font-size: 0.78rem;
+  }
+
+  .header-actions .btn .btn-text {
+    display: none;
+  }
+
+  .header-actions #uploadNewBtn .btn-text {
+    display: inline;
+  }
+
+  .canvas-viewport {
+    padding: 0.5rem;
+  }
+
+  .floating-zoom-bar {
+    top: 0.5rem;
+    right: 0.5rem;
+    padding: 0.2rem 0.4rem;
+  }
+
+  .direct-edit-floating-bar {
+    width: calc(100% - 1rem);
+    max-width: 100%;
+    bottom: max(0.6rem, env(safe-area-inset-bottom, 0.6rem));
+    padding: 0.65rem 0.75rem;
+    border-radius: 14px;
+  }
+
+  .edit-bar-header {
+    margin-bottom: 0.35rem;
+  }
+
+  .edit-bar-title {
+    font-size: 0.7rem;
+  }
+
+  .edit-bar-main-row {
+    gap: 0.35rem;
+    margin-bottom: 0.4rem;
+  }
+
+  .edit-bar-input {
+    min-width: 0;
+    flex: 1;
+    min-height: 38px;
+    padding: 0.5rem 0.65rem;
+    font-size: 0.9rem;
+  }
+
+  .edit-bar-apply-btn {
+    min-height: 38px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .edit-bar-tools-row {
+    gap: 0.35rem;
+    margin-bottom: 0.2rem;
+  }
+
+  .auto-style-tag {
+    font-size: 0.66rem;
+  }
+
+  .auto-info-badge {
+    font-size: 0.68rem;
+    padding: 0.1rem 0.4rem;
+  }
+
+  .edit-bar-size-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.45rem;
+    margin-top: 0.4rem;
+    padding-top: 0.4rem;
+  }
+
+  .edit-bar-size-section {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .tool-size-slider {
+    width: 85px;
+  }
+
+  .edit-bar-secondary-controls {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-left: 0;
+    gap: 0.35rem;
+  }
+
+  .edit-bar-weight-section {
+    margin-left: 0;
+  }
+
+  .weight-segmented-control {
+    padding: 1px;
+    gap: 1px;
+  }
+
+  .btn-weight-opt {
+    padding: 0.2rem 0.35rem;
+    font-size: 0.65rem;
+  }
+
+  .position-nudge-group {
+    padding: 1px 3px;
+    gap: 2px;
+  }
+
+  .position-nudge-group .tool-btn-sm {
+    width: 20px;
+    height: 20px;
+  }
 }
 
 

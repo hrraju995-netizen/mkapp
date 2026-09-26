@@ -134,10 +134,15 @@
 
       <!-- Viewport area -->
       <div class="canvas-viewport" id="canvasViewport">
-        <!-- Floating Quick Zoom Widget on Canvas -->
+        <!-- Floating Quick Zoom & Pan Widget on Canvas -->
         <div class="floating-zoom-bar" id="floatingZoomBar" style="display: none;">
+          <div class="canvas-tool-toggle-group">
+            <button type="button" id="toolSelectBtn" class="tool-btn-sm tool-mode-toggle active" title="Select / Edit Text">✏️ Edit</button>
+            <button type="button" id="toolMoveBtn" class="tool-btn-sm tool-mode-toggle" title="Move / Drag Image">✋ Move</button>
+          </div>
+          <div class="zoom-divider"></div>
           <button type="button" id="floatZoomOutBtn" class="tool-btn-sm" title="Zoom Out">-</button>
-          <span id="floatZoomVal" class="tool-size-text" style="min-width: 36px; cursor: pointer;">Fit</span>
+          <span id="floatZoomVal" class="tool-size-text" style="min-width: 32px; cursor: pointer;">Fit</span>
           <button type="button" id="floatZoomInBtn" class="tool-btn-sm" title="Zoom In">+</button>
           <button type="button" id="floatZoomFitBtn" class="tool-btn-sm" style="font-size:0.68rem; width: auto; padding: 0 4px;" title="Reset to Fit">Fit</button>
         </div>
@@ -235,21 +240,23 @@
           </div>
         </div>
 
-        <div class="edit-bar-weight-section">
-          <span class="edit-bar-weight-label">Weight:</span>
-          <div class="weight-segmented-control" id="weightSegmentedControl">
-            <button type="button" class="btn-weight-opt" data-weight="normal" title="Regular (400) — Light / Standard">Regular</button>
-            <button type="button" class="btn-weight-opt active" data-weight="600" title="Semi-Bold (600) — Exact match for iOS / App headers">Semi-Bold</button>
-            <button type="button" class="btn-weight-opt" data-weight="bold" title="Bold (700) — Strong Bold">Bold</button>
+        <div class="edit-bar-secondary-controls">
+          <div class="edit-bar-weight-section">
+            <span class="edit-bar-weight-label">Weight:</span>
+            <div class="weight-segmented-control" id="weightSegmentedControl">
+              <button type="button" class="btn-weight-opt" data-weight="normal" title="Regular (400)">Regular</button>
+              <button type="button" class="btn-weight-opt active" data-weight="600" title="Semi-Bold (600)">Semi-Bold</button>
+              <button type="button" class="btn-weight-opt" data-weight="bold" title="Bold (700)">Bold</button>
+            </div>
           </div>
-        </div>
 
-        <div class="edit-bar-position-section">
-          <span class="edit-bar-weight-label">Position Y:</span>
-          <div class="position-nudge-group">
-            <button type="button" id="nudgeUpBtn" class="tool-btn-sm" title="Move text up (−1px)">▲</button>
-            <span id="nudgeVal" class="tool-size-text" style="font-size:0.75rem; min-width:28px; text-align:center; font-family:monospace; color:#38bdf8;">0px</span>
-            <button type="button" id="nudgeDownBtn" class="tool-btn-sm" title="Move text down (+1px)">▼</button>
+          <div class="edit-bar-position-section">
+            <span class="edit-bar-weight-label">Position Y:</span>
+            <div class="position-nudge-group">
+              <button type="button" id="nudgeUpBtn" class="tool-btn-sm" title="Move text up (−1px)">▲</button>
+              <span id="nudgeVal" class="tool-size-text" style="font-size:0.75rem; min-width:28px; text-align:center; font-family:monospace; color:#38bdf8;">0px</span>
+              <button type="button" id="nudgeDownBtn" class="tool-btn-sm" title="Move text down (+1px)">▼</button>
+            </div>
           </div>
         </div>
       </div>
