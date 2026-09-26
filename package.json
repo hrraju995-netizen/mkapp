@@ -6,7 +6,8 @@
   "main": "index.js",
   "scripts": {
     "dev": "vite --host --port 5173",
-    "build": "vite build",
+    "build": "vite build && node scripts/post-build.js",
+    "start": "node index.js",
     "preview": "vite preview",
     "deploy": "node scripts/deploy.js"
   },
