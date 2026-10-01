@@ -20,7 +20,7 @@ export default defineConfig({
                 const base64Data = dataUrl.replace(/^data:image\/png;base64,/, '');
                 const outDir = path.resolve(import.meta.dirname, 'downloads');
                 if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
-                const safeName = filename || 'TextShift_Edited.png';
+                const safeName = filename || 'MK_Text_App_Edited.png';
                 const filePath = path.join(outDir, safeName);
                 fs.writeFileSync(filePath, base64Data, 'base64');
                 // Also write to public

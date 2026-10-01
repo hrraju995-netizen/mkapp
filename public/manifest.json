@@ -1,7 +1,7 @@
 {
-  "name": "TextShift AI — Precision Image Text Inpainter",
-  "short_name": "TextShift",
-  "description": "Precision image text inpainting engine. Detect, replace and download text while preserving 100% of original image.",
+  "name": "MK Text App — Precision Image Text Editor",
+  "short_name": "MK Text App",
+  "description": "Precision image text replacement and removal engine. Detect, replace, erase and download text while preserving 100% of original image.",
   "start_url": "/",
   "display": "standalone",
   "orientation": "any",

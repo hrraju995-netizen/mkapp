@@ -1062,7 +1062,7 @@ function downloadEditedImage() {
 function triggerFileDownload() {
   const dataUrl = imageCanvas.toDataURL('image/png', 1.0);
   const link = document.createElement('a');
-  link.download = `TextShift_Edited_${Date.now()}.png`;
+  link.download = `MK_Text_App_Edited_${Date.now()}.png`;
   link.href = dataUrl;
   document.body.appendChild(link);
   link.click();

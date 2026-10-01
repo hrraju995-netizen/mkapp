@@ -73,7 +73,7 @@ async function deploy() {
     console.log('\n📤 Step 4: Uploading fresh dist files to public_html...');
     await client.uploadFromDir(localDistDir);
 
-    console.log('\n🎉 SUCCESS! TextShift has been deployed live to Hostinger!');
+    console.log('\n🎉 SUCCESS! MK Text App has been deployed live to Hostinger!');
     console.log('🌐 Visit your site to verify the latest updates!');
   } catch (err) {
     console.error('\n❌ Deployment failed:', err.message);
