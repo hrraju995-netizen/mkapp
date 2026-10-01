@@ -75,7 +75,10 @@ const directSizePlus = document.getElementById('directSizePlus');
 const directSizeInput = document.getElementById('directSizeInput');
 const directSizeSlider = document.getElementById('directSizeSlider');
 
-// Position Y Nudge Controls
+// Position X & Y Nudge Controls
+const nudgeLeftBtn = document.getElementById('nudgeLeftBtn');
+const nudgeRightBtn = document.getElementById('nudgeRightBtn');
+const nudgeXVal = document.getElementById('nudgeXVal');
 const nudgeUpBtn = document.getElementById('nudgeUpBtn');
 const nudgeDownBtn = document.getElementById('nudgeDownBtn');
 const nudgeVal = document.getElementById('nudgeVal');
@@ -89,6 +92,20 @@ const zoomFitBtn = document.getElementById('zoomFitBtn');
 const floatingZoomBar = document.getElementById('floatingZoomBar');
 const toolSelectBtn = document.getElementById('toolSelectBtn');
 const toolMoveBtn = document.getElementById('toolMoveBtn');
+const panArrowsGroup = document.getElementById('panArrowsGroup');
+const panUpBtn = document.getElementById('panUpBtn');
+const panDownBtn = document.getElementById('panDownBtn');
+const panLeftBtn = document.getElementById('panLeftBtn');
+const panRightBtn = document.getElementById('panRightBtn');
+const panCenterBtn = document.getElementById('panCenterBtn');
+
+const editBarPanArrows = document.getElementById('editBarPanArrows');
+const editBarPanUpBtn = document.getElementById('editBarPanUpBtn');
+const editBarPanDownBtn = document.getElementById('editBarPanDownBtn');
+const editBarPanLeftBtn = document.getElementById('editBarPanLeftBtn');
+const editBarPanRightBtn = document.getElementById('editBarPanRightBtn');
+const editBarPanResetBtn = document.getElementById('editBarPanResetBtn');
+
 const floatZoomOutBtn = document.getElementById('floatZoomOutBtn');
 const floatZoomVal = document.getElementById('floatZoomVal');
 const floatZoomInBtn = document.getElementById('floatZoomInBtn');
@@ -372,6 +389,9 @@ function clearSelection() {
     toggleStyleOptionsBtn.textContent = '⚙️ Style ▾';
   }
   clearLivePreview();
+  if (editBarPanArrows) {
+    editBarPanArrows.style.display = 'none';
+  }
   if (state.originalImage && floatingZoomBar) {
     floatingZoomBar.style.display = 'flex';
   }
@@ -379,18 +399,52 @@ function clearSelection() {
 }
 
 /**
+ * Pan the Image Canvas in Direction by (dx, dy)
+ */
+function panImage(dx, dy) {
+  if (!state.originalImage) return;
+  state.panX = Math.round((state.panX || 0) + dx);
+  state.panY = Math.round((state.panY || 0) + dy);
+  updateCanvasTransform();
+}
+
+/**
+ * Reset Canvas Pan Position to Center
+ */
+function resetPan() {
+  state.panX = 0;
+  state.panY = 0;
+  updateCanvasTransform();
+}
+
+/**
  * Switch Canvas Tool: 'select' (Edit/Select text) | 'pan' (Move/Scroll image)
  */
 function setCanvasTool(tool) {
   state.currentTool = tool;
-  if (toolSelectBtn) toolSelectBtn.classList.toggle('active', tool === 'select');
-  if (toolMoveBtn) toolMoveBtn.classList.toggle('active', tool === 'pan');
+  const isPan = tool === 'pan';
+
+  if (toolSelectBtn) toolSelectBtn.classList.toggle('active', !isPan);
+  if (toolMoveBtn) toolMoveBtn.classList.toggle('active', isPan);
+
   if (editBarPanToggleBtn) {
-    editBarPanToggleBtn.classList.toggle('active', tool === 'pan');
-    editBarPanToggleBtn.textContent = tool === 'pan' ? '✏️ Edit Text' : '✋ Move';
+    editBarPanToggleBtn.classList.toggle('active', isPan);
+    editBarPanToggleBtn.textContent = isPan ? '✏️ Edit Text' : '✋ Move';
   }
+
+  if (panArrowsGroup) {
+    panArrowsGroup.style.display = isPan ? 'inline-flex' : 'none';
+  }
+  if (editBarPanArrows) {
+    editBarPanArrows.style.display = isPan ? 'inline-flex' : 'none';
+  }
+
   if (canvasStageWrapper) {
-    canvasStageWrapper.style.cursor = tool === 'pan' ? 'grab' : 'crosshair';
+    canvasStageWrapper.style.cursor = isPan ? 'grab' : 'crosshair';
+  }
+
+  if (isPan) {
+    showToast('✋ Move Mode: Drag image or tap ▲ ▼ ◀ ▶ to pan.', 'info');
   }
 }
 
@@ -712,6 +766,7 @@ function initDragSelection() {
   const onStart = (e) => {
     if (state.activeMode !== 'normal') return;
     if (e.button !== undefined && e.button !== 0) return;
+    if (isPointerDown || isPanning) return;
 
     // Check if clicked inside direct floating bar or floating zoom bar
     if (directEditFloatingBar && directEditFloatingBar.contains(e.target)) return;
@@ -974,6 +1029,7 @@ function initDragSelection() {
 
       // Reset nudge position indicator
       if (nudgeVal) nudgeVal.textContent = '0px';
+      if (nudgeXVal) nudgeXVal.textContent = '0px';
 
       // Populate Floating Action Bar with auto-detected info & font size controls
       if (autoFontSizeBadge) autoFontSizeBadge.textContent = `Size: ${naturalSize}px`;
@@ -1030,13 +1086,26 @@ function initDragSelection() {
     }
   };
 
+  // Prevent native HTML5 image/canvas drag from stopping canvas pan
   if (canvasViewport) {
+    canvasViewport.addEventListener('dragstart', (e) => e.preventDefault());
+    canvasViewport.addEventListener('pointerdown', onStart);
     canvasViewport.addEventListener('mousedown', onStart);
     canvasViewport.addEventListener('touchstart', onStart, { passive: false });
-  } else {
+  } else if (canvasStageWrapper) {
+    canvasStageWrapper.addEventListener('dragstart', (e) => e.preventDefault());
+    canvasStageWrapper.addEventListener('pointerdown', onStart);
     canvasStageWrapper.addEventListener('mousedown', onStart);
     canvasStageWrapper.addEventListener('touchstart', onStart, { passive: false });
   }
+
+  if (imageCanvas) {
+    imageCanvas.addEventListener('dragstart', (e) => e.preventDefault());
+  }
+
+  window.addEventListener('pointermove', onMove);
+  window.addEventListener('pointerup', onEnd);
+  window.addEventListener('pointercancel', onEnd);
 
   window.addEventListener('mousemove', onMove);
   window.addEventListener('mouseup', onEnd);
@@ -1209,9 +1278,20 @@ function initEvents() {
   if (editBarPanToggleBtn) {
     editBarPanToggleBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      setCanvasTool(state.currentTool === 'pan' ? 'select' : 'pan');
+      const nextTool = state.currentTool === 'pan' ? 'select' : 'pan';
+      setCanvasTool(nextTool);
+      if (nextTool === 'pan') {
+        panImage(0, -90); // Auto-nudge image up so text is comfortably above the edit bar!
+      }
     });
   }
+
+  // Edit Bar Pan Arrows
+  if (editBarPanUpBtn) editBarPanUpBtn.addEventListener('click', (e) => { e.stopPropagation(); panImage(0, -70); });
+  if (editBarPanDownBtn) editBarPanDownBtn.addEventListener('click', (e) => { e.stopPropagation(); panImage(0, 70); });
+  if (editBarPanLeftBtn) editBarPanLeftBtn.addEventListener('click', (e) => { e.stopPropagation(); panImage(-70, 0); });
+  if (editBarPanRightBtn) editBarPanRightBtn.addEventListener('click', (e) => { e.stopPropagation(); panImage(70, 0); });
+  if (editBarPanResetBtn) editBarPanResetBtn.addEventListener('click', (e) => { e.stopPropagation(); resetPan(); });
 
   if (toggleStyleOptionsBtn && editBarSizeRow) {
     toggleStyleOptionsBtn.addEventListener('click', (e) => {
@@ -1316,7 +1396,35 @@ function initEvents() {
     });
   });
 
-  // Position Y Nudge Controls (▲ −1px, ▼ +1px)
+  // Position X & Y Nudge Controls (◀ −1px, ▶ +1px, ▲ −1px, ▼ +1px)
+  if (nudgeLeftBtn) {
+    nudgeLeftBtn.addEventListener('click', () => {
+      if (!state.currentSelection) return;
+      state.currentSelection.offsetX = (state.currentSelection.offsetX || 0) - 1;
+      if (nudgeXVal) {
+        const off = state.currentSelection.offsetX;
+        nudgeXVal.textContent = (off > 0 ? '+' : '') + off + 'px';
+      }
+      if (directReplaceInput && directReplaceInput.value) {
+        renderLivePreview(directReplaceInput.value);
+      }
+    });
+  }
+
+  if (nudgeRightBtn) {
+    nudgeRightBtn.addEventListener('click', () => {
+      if (!state.currentSelection) return;
+      state.currentSelection.offsetX = (state.currentSelection.offsetX || 0) + 1;
+      if (nudgeXVal) {
+        const off = state.currentSelection.offsetX;
+        nudgeXVal.textContent = (off > 0 ? '+' : '') + off + 'px';
+      }
+      if (directReplaceInput && directReplaceInput.value) {
+        renderLivePreview(directReplaceInput.value);
+      }
+    });
+  }
+
   if (nudgeUpBtn) {
     nudgeUpBtn.addEventListener('click', () => {
       if (!state.currentSelection) return;
@@ -1383,6 +1491,13 @@ function initEvents() {
       setCanvasTool('pan');
     });
   }
+
+  // Floating Pan Buttons (Click-to-Move Controls)
+  if (panUpBtn) panUpBtn.addEventListener('click', (e) => { e.stopPropagation(); panImage(0, -70); });
+  if (panDownBtn) panDownBtn.addEventListener('click', (e) => { e.stopPropagation(); panImage(0, 70); });
+  if (panLeftBtn) panLeftBtn.addEventListener('click', (e) => { e.stopPropagation(); panImage(-70, 0); });
+  if (panRightBtn) panRightBtn.addEventListener('click', (e) => { e.stopPropagation(); panImage(70, 0); });
+  if (panCenterBtn) panCenterBtn.addEventListener('click', (e) => { e.stopPropagation(); resetPan(); });
 
   // Ctrl + Wheel / Trackpad pinch to zoom on canvas viewport
   if (canvasViewport) {

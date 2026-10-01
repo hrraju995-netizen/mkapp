@@ -194,6 +194,13 @@
       <button type="button" id="toolSelectBtn" class="tool-btn-sm tool-mode-toggle active" title="Select / Edit Text">✏️ Edit</button>
       <button type="button" id="toolMoveBtn" class="tool-btn-sm tool-mode-toggle" title="Move / Drag Image">✋ Move</button>
     </div>
+    <div class="pan-arrows-group" id="panArrowsGroup" style="display: none;">
+      <button type="button" id="panUpBtn" class="tool-btn-sm pan-arrow-btn" title="Move Image Up">▲</button>
+      <button type="button" id="panDownBtn" class="tool-btn-sm pan-arrow-btn" title="Move Image Down">▼</button>
+      <button type="button" id="panLeftBtn" class="tool-btn-sm pan-arrow-btn" title="Move Image Left">◀</button>
+      <button type="button" id="panRightBtn" class="tool-btn-sm pan-arrow-btn" title="Move Image Right">▶</button>
+      <button type="button" id="panCenterBtn" class="tool-btn-sm pan-arrow-btn" title="Center Image">🎯</button>
+    </div>
     <div class="zoom-divider"></div>
     <button type="button" id="floatZoomOutBtn" class="tool-btn-sm" title="Zoom Out">−</button>
     <span id="floatZoomVal" class="tool-size-text" style="min-width: 32px; cursor: pointer;">Fit</span>
@@ -207,6 +214,13 @@
       <div class="edit-bar-header">
         <span class="edit-bar-title" id="editBarTitle">Replace or Remove Text</span>
         <div class="edit-bar-header-actions">
+          <div class="edit-bar-pan-arrows" id="editBarPanArrows" style="display: none;">
+            <button type="button" id="editBarPanUpBtn" class="tool-btn-sm pan-arrow-btn" title="Move Image Up">▲</button>
+            <button type="button" id="editBarPanDownBtn" class="tool-btn-sm pan-arrow-btn" title="Move Image Down">▼</button>
+            <button type="button" id="editBarPanLeftBtn" class="tool-btn-sm pan-arrow-btn" title="Move Image Left">◀</button>
+            <button type="button" id="editBarPanRightBtn" class="tool-btn-sm pan-arrow-btn" title="Move Image Right">▶</button>
+            <button type="button" id="editBarPanResetBtn" class="tool-btn-sm pan-arrow-btn" title="Reset Image Position">🎯</button>
+          </div>
           <button type="button" id="editBarPanToggleBtn" class="edit-bar-mode-btn" title="Toggle Move / Edit">✋ Move</button>
           <button type="button" id="toggleStyleOptionsBtn" class="edit-bar-toggle-style-btn" title="Show font size and style options">⚙️ Style ▾</button>
           <button type="button" class="btn-close-bar" id="directCancelBtn" title="Cancel selection">&times;</button>
@@ -271,7 +285,16 @@
           </div>
 
           <div class="edit-bar-position-section">
-            <span class="edit-bar-weight-label">Position Y:</span>
+            <span class="edit-bar-weight-label">Pos X:</span>
+            <div class="position-nudge-group">
+              <button type="button" id="nudgeLeftBtn" class="tool-btn-sm" title="Move text left (−1px)">◀</button>
+              <span id="nudgeXVal" class="tool-size-text" style="font-size:0.75rem; min-width:28px; text-align:center; font-family:monospace; color:#38bdf8;">0px</span>
+              <button type="button" id="nudgeRightBtn" class="tool-btn-sm" title="Move text right (+1px)">▶</button>
+            </div>
+          </div>
+
+          <div class="edit-bar-position-section">
+            <span class="edit-bar-weight-label">Pos Y:</span>
             <div class="position-nudge-group">
               <button type="button" id="nudgeUpBtn" class="tool-btn-sm" title="Move text up (−1px)">▲</button>
               <span id="nudgeVal" class="tool-size-text" style="font-size:0.75rem; min-width:28px; text-align:center; font-family:monospace; color:#38bdf8;">0px</span>
