@@ -73,6 +73,16 @@ async function deploy() {
     console.log('\n📤 Step 4: Uploading fresh dist files to public_html...');
     await client.uploadFromDir(localDistDir);
 
+    // Also sync to /hbuilds/current/public_html so Hostinger internal mirrors stay consistent
+    try {
+      console.log('\n🔄 Step 5: Syncing to /hbuilds/current/public_html...');
+      await client.cd('/hbuilds/current/public_html');
+      await client.uploadFromDir(localDistDir);
+      console.log('✓ Synced to /hbuilds/current/public_html');
+    } catch (e) {
+      console.log('Note: /hbuilds/current/public_html sync skipped (not required).');
+    }
+
     console.log('\n🎉 SUCCESS! MK Text App has been deployed live to Hostinger!');
     console.log('🌐 Visit your site to verify the latest updates!');
   } catch (err) {

@@ -7,7 +7,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = fs.existsSync(path.join(__dirname, 'dist')) 
   ? path.join(__dirname, 'dist')
-  : path.join(__dirname, 'public');
+  : (fs.existsSync(path.join(__dirname, 'public_html')) 
+      ? path.join(__dirname, 'public_html') 
+      : path.join(__dirname, 'public'));
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
