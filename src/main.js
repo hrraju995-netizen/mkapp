@@ -57,6 +57,7 @@ const loadInvoiceSampleBtn = document.getElementById('loadInvoiceSampleBtn');
 const directEditFloatingBar = document.getElementById('directEditFloatingBar');
 const directReplaceInput = document.getElementById('directReplaceInput');
 const directApplyBtn = document.getElementById('directApplyBtn');
+const directRemoveBtn = document.getElementById('directRemoveBtn');
 const directCancelBtn = document.getElementById('directCancelBtn');
 const directCancelBtn2 = document.getElementById('directCancelBtn2');
 const editBarPanToggleBtn = document.getElementById('editBarPanToggleBtn');
@@ -479,11 +480,7 @@ function renderLivePreview(newText) {
     activeBox.style.borderColor = 'rgba(56, 189, 248, 0.4)';
   }
 
-  if (!newText || newText.trim() === '') {
-    const indicator = canvasStageWrapper.querySelector('.live-preview-indicator');
-    if (indicator) indicator.remove();
-    return;
-  }
+  const isRemoving = !newText || (typeof newText === 'string' && newText.trim() === '');
 
   const fontFamily = "'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
   const selectionWeight = state.currentSelection.fontWeight || '600';
@@ -502,22 +499,47 @@ function renderLivePreview(newText) {
   };
 
   // Use user-selected or auto-detected font size — will not shrink when typing
-  const currentSize = state.currentSelection.fontSize || computeOptimalFontSize(ctx, newText, bbox, fontFamily, options.fontWeight);
+  const currentSize = state.currentSelection.fontSize || (isRemoving ? 14 : computeOptimalFontSize(ctx, newText, bbox, fontFamily, options.fontWeight));
   options.fontSize = currentSize;
   if (autoFontSizeBadge) autoFontSizeBadge.textContent = `Size: ${currentSize}px`;
 
-  replaceTextInRegion(imageCanvas, bbox, newText, options);
+  replaceTextInRegion(imageCanvas, bbox, isRemoving ? '' : newText, options);
 
-  if (!canvasStageWrapper.querySelector('.live-preview-indicator')) {
-    const indicator = document.createElement('div');
+  let indicator = canvasStageWrapper.querySelector('.live-preview-indicator');
+  if (!indicator) {
+    indicator = document.createElement('div');
     indicator.className = 'live-preview-indicator';
-    indicator.textContent = '⚡ PREVIEW';
     canvasStageWrapper.appendChild(indicator);
+  }
+  indicator.textContent = isRemoving ? '⚡ REMOVED PREVIEW' : '⚡ PREVIEW';
+}
+
+/**
+ * Dynamically update the Change / Remove button label based on input
+ */
+function updateDirectApplyButtonLabel() {
+  if (!directApplyBtn) return;
+  const val = directReplaceInput ? directReplaceInput.value : '';
+  const isRemoving = !val || val.trim() === '';
+  if (isRemoving) {
+    directApplyBtn.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+      Remove Text
+    `;
+    directApplyBtn.classList.add('btn-remove-mode');
+    directApplyBtn.title = 'Erase / remove selected text completely';
+  } else {
+    directApplyBtn.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+      Change Text
+    `;
+    directApplyBtn.classList.remove('btn-remove-mode');
+    directApplyBtn.title = 'Replace with new text';
   }
 }
 
 /**
- * Apply and Commit Text Replacement
+ * Apply and Commit Text Replacement (or Removal if input is empty)
  */
 function commitDirectReplacement() {
   if (!state.currentSelection) {
@@ -525,13 +547,11 @@ function commitDirectReplacement() {
     return;
   }
 
-  const newText = directReplaceInput.value;
-  if (!newText || newText.trim() === '') {
-    showToast('Please type the replacement text.', 'warning');
-    return;
-  }
+  const rawText = directReplaceInput ? directReplaceInput.value : '';
+  const isRemoving = !rawText || rawText.trim() === '';
+  const newText = isRemoving ? '' : rawText;
 
-  const { bbox, sampledBg, sampledText, fontSize, isBold } = state.currentSelection;
+  const { bbox, sampledBg, sampledText } = state.currentSelection;
 
   // Restore live preview patch before final commit so undo patch is pristine
   if (state.livePreviewPatch) {
@@ -549,7 +569,7 @@ function commitDirectReplacement() {
   const fontFamily = "'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif";
 
   const currentWeight = state.currentSelection.fontWeight || '600';
-  const finalFontSize = state.currentSelection.fontSize || computeOptimalFontSize(imageCanvas.getContext('2d'), newText, bbox, fontFamily, currentWeight);
+  const finalFontSize = state.currentSelection.fontSize || (isRemoving ? 14 : computeOptimalFontSize(imageCanvas.getContext('2d'), newText, bbox, fontFamily, currentWeight));
 
   const options = {
     bgColor: sampledBg.hex,
@@ -565,7 +585,7 @@ function commitDirectReplacement() {
     offsetX: state.currentSelection.offsetX || 0
   };
 
-  // Perform clean replacement
+  // Perform clean replacement / text removal
   const patchInfo = replaceTextInRegion(imageCanvas, bbox, newText, options);
 
   // Save for Undo
@@ -573,6 +593,7 @@ function commitDirectReplacement() {
     id: `mod_${Date.now()}`,
     bbox,
     newText,
+    isRemoval: isRemoving,
     patchInfo
   });
 
@@ -587,7 +608,26 @@ function commitDirectReplacement() {
   setCanvasTool('select');
   if (floatingZoomBar) floatingZoomBar.style.display = 'flex';
   window.scrollTo(0, 0);
-  showToast('Text replaced! Style matched original image.', 'success');
+
+  if (isRemoving) {
+    showToast('Text removed cleanly! Original background preserved.', 'success');
+  } else {
+    showToast('Text replaced! Style matched original image.', 'success');
+  }
+}
+
+/**
+ * Direct 1-Click Removal of Selected Text
+ */
+function executeRemoveSelectedText() {
+  if (!state.currentSelection) {
+    showToast('Please select a text region first.', 'warning');
+    return;
+  }
+  if (directReplaceInput) {
+    directReplaceInput.value = '';
+  }
+  commitDirectReplacement();
 }
 
 /**
@@ -957,6 +997,7 @@ function initDragSelection() {
         directReplaceInput.value = '';
         directReplaceInput.placeholder = 'Reading text...';
       }
+      updateDirectApplyButtonLabel();
       if (directEditFloatingBar) directEditFloatingBar.style.display = 'block';
       centerSelectionInView(bbox);
 
@@ -967,10 +1008,12 @@ function initDragSelection() {
             directReplaceInput.value = recognizedText;
             directReplaceInput.select();
           }
-          if (directReplaceInput) directReplaceInput.placeholder = 'Type replacement text...';
+          if (directReplaceInput) directReplaceInput.placeholder = 'Type replacement or leave empty to remove...';
+          updateDirectApplyButtonLabel();
         }
       }).catch(() => {
-        if (directReplaceInput) directReplaceInput.placeholder = 'Type replacement text...';
+        if (directReplaceInput) directReplaceInput.placeholder = 'Type replacement or leave empty to remove...';
+        updateDirectApplyButtonLabel();
       });
 
       setTimeout(() => {
@@ -1159,6 +1202,7 @@ function initEvents() {
 
   // Direct Floating Bar Actions
   if (directApplyBtn) directApplyBtn.addEventListener('click', commitDirectReplacement);
+  if (directRemoveBtn) directRemoveBtn.addEventListener('click', executeRemoveSelectedText);
   if (directCancelBtn) directCancelBtn.addEventListener('click', clearSelection);
   if (directCancelBtn2) directCancelBtn2.addEventListener('click', clearSelection);
 
@@ -1187,6 +1231,7 @@ function initEvents() {
     });
     directReplaceInput.addEventListener('input', (e) => {
       const newText = e.target.value;
+      updateDirectApplyButtonLabel();
       clearTimeout(state.livePreviewDebounce);
       state.livePreviewDebounce = setTimeout(() => {
         renderLivePreview(newText);

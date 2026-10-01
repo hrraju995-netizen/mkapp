@@ -763,19 +763,29 @@ export function replaceTextInRegion(targetCanvas, bbox, newText, options = {}) {
   const fontFamily = options.fontFamily || "'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
   const align = options.align || 'center';
 
+  const isTextEmpty = !newText || (typeof newText === 'string' && newText.trim() === '');
+
   // 3. Compute optimal font size
   let fontSize = options.fontSize;
-  if (!fontSize) {
+  if (!fontSize && !isTextEmpty) {
     fontSize = computeOptimalFontSize(ctx, newText, bbox, fontFamily, fontWeight);
   }
+  if (!fontSize) fontSize = 14;
 
   // 4. Measure new text to determine total affected region for Undo
-  ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
-  const measuredWidth = ctx.measureText(newText).width;
+  let measuredWidth = 0;
+  if (!isTextEmpty) {
+    ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
+    measuredWidth = ctx.measureText(newText).width;
+  }
 
   const textCenterX = (centerX !== undefined) ? centerX : (bbox.x0 + bbox.width / 2);
-  const affectedLeft = Math.max(0, Math.min(inpaintX, Math.round(textCenterX - measuredWidth / 2 - 8)));
-  const affectedRight = Math.min(targetCanvas.width, Math.max(inpaintX + inpaintW, Math.round(textCenterX + measuredWidth / 2 + 8)));
+  const affectedLeft = isTextEmpty
+    ? inpaintX
+    : Math.max(0, Math.min(inpaintX, Math.round(textCenterX - measuredWidth / 2 - 8)));
+  const affectedRight = isTextEmpty
+    ? (inpaintX + inpaintW)
+    : Math.min(targetCanvas.width, Math.max(inpaintX + inpaintW, Math.round(textCenterX + measuredWidth / 2 + 8)));
   const affectedW = affectedRight - affectedLeft;
   const affectedH = inpaintH;
 
@@ -788,21 +798,23 @@ export function replaceTextInRegion(targetCanvas, bbox, newText, options = {}) {
 
   // 6. Render Replacement Text with 100% transparent background directly onto canvas
   // Pure, crisp, natural font glyphs aligned to exact original text baseline
-  ctx.save();
-  ctx.fillStyle = textColor;
-  ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
-  ctx.textBaseline = 'alphabetic';
-  ctx.textAlign = align;
+  if (!isTextEmpty) {
+    ctx.save();
+    ctx.fillStyle = textColor;
+    ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
+    ctx.textBaseline = 'alphabetic';
+    ctx.textAlign = align;
 
-  let renderX = textCenterX;
-  if (align === 'left') renderX = inpaintX;
-  else if (align === 'right') renderX = inpaintX + inpaintW;
-  renderX += (options.offsetX || 0);
+    let renderX = textCenterX;
+    if (align === 'left') renderX = inpaintX;
+    else if (align === 'right') renderX = inpaintX + inpaintW;
+    renderX += (options.offsetX || 0);
 
-  // Exact baseline positioning: letters sit on the true text baseline
-  const effectiveBaseline = (baselineY !== undefined ? baselineY : (bbox.y0 + bbox.height - 2)) + (options.offsetY || 0);
-  ctx.fillText(newText, renderX, effectiveBaseline);
-  ctx.restore();
+    // Exact baseline positioning: letters sit on the true text baseline
+    const effectiveBaseline = (baselineY !== undefined ? baselineY : (bbox.y0 + bbox.height - 2)) + (options.offsetY || 0);
+    ctx.fillText(newText, renderX, effectiveBaseline);
+    ctx.restore();
+  }
 
   return {
     targetX: affectedLeft,

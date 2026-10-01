@@ -14,8 +14,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <script type="module" crossorigin src="/assets/index-BtQ-YsYZ.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-D9cKaUoX.css">
+  <script type="module" crossorigin src="/assets/index-CECCN-EA.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-D0n5zXRR.css">
 </head>
 <body>
   <!-- Top Navigation Bar -->
@@ -206,7 +206,7 @@
   <div class="direct-edit-floating-bar" id="directEditFloatingBar" style="display: none;">
     <div class="edit-bar-content">
       <div class="edit-bar-header">
-        <span class="edit-bar-title">Replace Selected Text</span>
+        <span class="edit-bar-title" id="editBarTitle">Replace or Remove Text</span>
         <div class="edit-bar-header-actions">
           <button type="button" id="editBarPanToggleBtn" class="edit-bar-mode-btn" title="Toggle Move / Edit">✋ Move</button>
           <button type="button" id="toggleStyleOptionsBtn" class="edit-bar-toggle-style-btn" title="Show font size and style options">⚙️ Style ▾</button>
@@ -215,14 +215,20 @@
       </div>
 
       <div class="edit-bar-main-row">
-        <input type="text" id="directReplaceInput" class="edit-bar-input" placeholder="Type new text here..." autocomplete="off" autocorrect="off" spellcheck="false">
-        <button type="button" id="directApplyBtn" class="btn btn-primary edit-bar-apply-btn">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
-          Change Text
-        </button>
-        <button type="button" id="directCancelBtn2" class="btn btn-secondary edit-bar-back-btn" title="Cancel & Go Back">
-          Back
-        </button>
+        <input type="text" id="directReplaceInput" class="edit-bar-input" placeholder="Type new text..." autocomplete="off" autocorrect="off" spellcheck="false">
+        <div class="edit-bar-btn-group">
+          <button type="button" id="directApplyBtn" class="btn btn-primary edit-bar-apply-btn" title="Replace with new text">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            Change
+          </button>
+          <button type="button" id="directRemoveBtn" class="btn btn-danger edit-bar-remove-btn" title="Remove / erase selected text and make area blank">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+            Erase (Blank)
+          </button>
+          <button type="button" id="directCancelBtn2" class="btn btn-secondary edit-bar-back-btn" title="Cancel & Go Back">
+            Back
+          </button>
+        </div>
       </div>
 
       <div class="edit-bar-tools-row">

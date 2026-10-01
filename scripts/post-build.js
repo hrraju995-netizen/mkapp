@@ -27,6 +27,10 @@ if (fs.existsSync(path.join(distDir, 'index.html'))) {
 }
 
 if (fs.existsSync(path.join(distDir, 'assets'))) {
-  copyRecursive(path.join(distDir, 'assets'), path.join(publicDir, 'assets'));
+  const publicAssetsDir = path.join(publicDir, 'assets');
+  if (fs.existsSync(publicAssetsDir)) {
+    fs.rmSync(publicAssetsDir, { recursive: true, force: true });
+  }
+  copyRecursive(path.join(distDir, 'assets'), publicAssetsDir);
   console.log('✓ Copied dist/assets -> public/assets');
 }

@@ -73,16 +73,6 @@ async function deploy() {
     console.log('\n📤 Step 4: Uploading fresh dist files to public_html...');
     await client.uploadFromDir(localDistDir);
 
-    // Also upload to /hbuilds/current/public_html if Hostinger Git build system is active
-    try {
-      console.log('Syncing to /hbuilds/current/public_html...');
-      await client.cd('/hbuilds/current/public_html');
-      await client.uploadFromDir(localDistDir);
-      console.log('Synced to /hbuilds/current/public_html successfully.');
-    } catch (e) {
-      // Normal if not using hbuilds
-    }
-
     console.log('\n🎉 SUCCESS! TextShift has been deployed live to Hostinger!');
     console.log('🌐 Visit your site to verify the latest updates!');
   } catch (err) {

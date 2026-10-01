@@ -3,6 +3,9 @@ import fs from 'fs';
 import path from 'path';
 
 export default defineConfig({
+  build: {
+    emptyOutDir: true
+  },
   plugins: [
     {
       name: 'save-download-middleware',
